@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func ProcessSubmission(sub SubmissionData, problem ProblemData) (result JobResult) {
+func ProcessSubmission(sub *SubmissionData, problem *ProblemData) (result JobResult) {
 	result = JobResult{
 		Verdict:             "IE",
 		Cpu_time:            0,
