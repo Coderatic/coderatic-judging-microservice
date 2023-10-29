@@ -1,0 +1,8 @@
+*.env
+
+**.out
+/worker/cache/code/**
+/worker/cache/test_cases/**
+
+!/worker/cache/code/.gitkeep
+!/worker/cache/test_cases/.gitkeep
