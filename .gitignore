@@ -7,4 +7,8 @@
 !/worker/cache/code/.gitkeep
 !/worker/cache/test_cases/.gitkeep
 
-**usr.sbin.coderatic-bin-policy
+**coderatic-bin-policy.apparmor
+**coderatic-py3-policy.apparmor
+
+.dockerignore
+Dockerfile
