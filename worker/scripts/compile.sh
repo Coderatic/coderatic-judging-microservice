@@ -15,8 +15,8 @@ c)
 Rust)
 	rustc "$code_path/$src".rs --crate-type=bin -C prefer-dynamic=no -C target-feature=+crt-static -o "$code_path"/"$bin_name"
 	;;
-golang)
-	go build -o "$code_path"/"$bin_name" "$code_path/$src".go -ldflags "-linkmode 'external' -extldflags '-static'"
+Golang)
+	go build --ldflags '-extldflags "-static"' -o "$code_path"/"$bin_name" "$code_path/$src".go
 	;;
 *)
 	echo "Language not supported"
