@@ -1,0 +1,6 @@
+#include <tunables/global>
+
+profile bin_jail {
+  deny /** rwkx,
+  signal (receive) peer=unconfined,
+}
