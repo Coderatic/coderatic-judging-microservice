@@ -37,7 +37,6 @@ func initEnv() (config, error) {
 }
 
 func main() {
-
 	cfg, err := initEnv()
 	if err != nil {
 		log.Panicf("Failed to initialize environment variables.")
