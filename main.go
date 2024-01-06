@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"judge/worker"
 	"log"
+
+	"judge/worker"
 
 	"github.com/caarlos0/env/v9"
 	"github.com/joho/godotenv"
