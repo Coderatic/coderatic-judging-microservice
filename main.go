@@ -8,11 +8,12 @@ import (
 	"log"
 
 	"github.com/caarlos0/env/v9"
+	"github.com/joho/godotenv"
 	"github.com/rabbitmq/amqp091-go"
 )
 
 type config struct {
-	RABBIT_MQ_CONNECTION_STRING string `env:"RABBIT_MQ_CONNECTION_STRING" envDefault:"amqp://127.0.0.1:5672"`
+	RABBITMQ_CONNECTION_STRING string `env:"RABBITMQ_CONNECTION_STRING" envDefault:"amqp://localhost:5672/"`
 }
 
 type JobData struct {
@@ -20,24 +21,37 @@ type JobData struct {
 	Submission_data worker.SubmissionData `json:"submission_data"`
 }
 
-func main() {
-
-	//Initialize env variables
-	cfg := config{}
-	err := env.Parse(&cfg)
+func initEnv() (config, error) {
+	err := godotenv.Load()
 	if err != nil {
-		log.Panicf("Failed to parse environment variables.")
+		return config{}, err
 	}
 
-	connection, err := amqp091.Dial(cfg.RABBIT_MQ_CONNECTION_STRING)
+	var cfg config
+	err = env.Parse(&cfg)
 	if err != nil {
-		log.Panicf("Could not connect to the RabbitMQ server")
+		return config{}, err
+	}
+
+	return cfg, nil
+}
+
+func main() {
+
+	cfg, err := initEnv()
+	if err != nil {
+		log.Panicf("Failed to initialize environment variables.")
+	}
+
+	connection, err := amqp091.Dial(cfg.RABBITMQ_CONNECTION_STRING)
+	if err != nil {
+		log.Fatalf("Could not connect to the RabbitMQ server")
 	}
 	defer connection.Close()
 
 	channel, err := connection.Channel()
 	if err != nil {
-		log.Panicf("Could not establish a channel on the RabbitMQ server")
+		log.Panic("Could not establish a channel on the RabbitMQ server")
 	}
 	defer channel.Close()
 
@@ -48,10 +62,10 @@ func main() {
 		log.Panicf("Failed to declare the queue")
 	}
 
-	fmt.Printf("Waiting for messages in the \"%s.\" To exit press CTRL+C\n", SUBMISSION_QUEUE_NAME)
+	fmt.Printf("Listening for messages in '%s.' queue...\nTo exit, press CTRL+C\n", SUBMISSION_QUEUE_NAME)
 	msgs, err := channel.Consume(SUBMISSION_QUEUE_NAME, "", false, false, false, false, nil)
 	if err != nil {
-		log.Panicf("Failed to register a consumer on the \"%s\" queue\nError: %s", SUBMISSION_QUEUE_NAME, err)
+		log.Panicf("Failed to register a consumer on the '%s' queue\nError: %s", SUBMISSION_QUEUE_NAME, err)
 	}
 
 	for msg := range msgs {
@@ -61,16 +75,15 @@ func main() {
 		err = json.Unmarshal(msg.Body, &job)
 		if err != nil {
 			log.Printf("Failed to unmarshal JSON %s into a struct object of type %T", string(msg.Body), job)
-			// TODO: Handle the error properly
 			continue
 		}
 
-		go func(msg amqp091.Delivery, job JobData) {
+		go func(msg *amqp091.Delivery, job *JobData) {
 			result := worker.ProcessSubmission(&job.Submission_data, &job.Problem_data)
 
 			responseBody, err := json.Marshal(result)
 			if err != nil {
-				log.Fatalf("Failed to convert %+v into JSON using json.Marshal()", result)
+				log.Printf("Failed to convert %+v into JSON using json.Marshal()", result)
 			}
 
 			err = channel.PublishWithContext(context.Background(), "", msg.ReplyTo, false, false, amqp091.Publishing{
@@ -79,7 +92,7 @@ func main() {
 				Body:          responseBody,
 			})
 			if err != nil {
-				log.Fatalf("Failed to publish response: %s", err)
+				log.Printf("Failed to publish a response: %s", err)
 			}
 
 			// Acknowledge the message
@@ -87,6 +100,6 @@ func main() {
 			if err != nil {
 				log.Printf("Failed to acknowledge message: %s", err)
 			}
-		}(msg, job)
+		}(&msg, &job)
 	}
 }
